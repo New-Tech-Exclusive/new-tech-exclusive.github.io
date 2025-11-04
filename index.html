@@ -1,1477 +1,221 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bloons TD 6 Ultimate</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+const express = require('express');
+const axios = require('axios');
+const cors = require('cors');
+const { URL } = require('url');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Enable CORS for all origins
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Serve a simple HTML interface
+app.get('/', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Web Proxy Server</title>
+      <style>
         body {
-            font-family: 'Arial Black', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            overflow: hidden;
+          font-family: Arial, sans-serif;
+          max-width: 800px;
+          margin: 50px auto;
+          padding: 20px;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          min-height: 100vh;
         }
-        #titleScreen {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            color: white;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e22ce 100%);
+        .container {
+          background: white;
+          padding: 30px;
+          border-radius: 10px;
+          box-shadow: 0 10px 25px rgba(0,0,0,0.2);
         }
-        #titleScreen h1 {
-            font-size: 84px;
-            text-shadow: 0 0 20px rgba(255,255,0,0.8), 4px 4px 8px rgba(0,0,0,0.9);
-            margin-bottom: 20px;
-            animation: glow 2s ease-in-out infinite alternate;
-            background: linear-gradient(45deg, #ff6b6b, #ffd93d, #6bcf7f, #4ecdc4);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        h1 {
+          color: #333;
+          text-align: center;
         }
-        @keyframes glow {
-            from { filter: drop-shadow(0 0 10px rgba(255,255,0,0.5)); }
-            to { filter: drop-shadow(0 0 30px rgba(255,100,255,0.8)); }
+        .input-group {
+          margin: 20px 0;
         }
-        .subtitle {
-            font-size: 32px;
-            margin-bottom: 30px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        input[type="text"] {
+          width: 100%;
+          padding: 12px;
+          border: 2px solid #ddd;
+          border-radius: 5px;
+          font-size: 16px;
+          box-sizing: border-box;
         }
-        .mapSelect {
-            display: flex;
-            gap: 40px;
-            margin-top: 20px;
+        button {
+          width: 100%;
+          padding: 12px;
+          background: #667eea;
+          color: white;
+          border: none;
+          border-radius: 5px;
+          font-size: 16px;
+          cursor: pointer;
+          margin-top: 10px;
         }
-        .mapCard {
-            width: 280px;
-            height: 200px;
-            border: 5px solid rgba(255,255,255,0.9);
-            border-radius: 20px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            font-weight: bold;
-            color: white;
-            text-shadow: 3px 3px 6px rgba(0,0,0,0.9);
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        button:hover {
+          background: #5568d3;
         }
-        .mapCard::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
-            transform: rotate(45deg);
-            transition: all 0.5s;
+        .info {
+          background: #f0f0f0;
+          padding: 15px;
+          border-radius: 5px;
+          margin-top: 20px;
         }
-        .mapCard:hover::before {
-            left: 100%;
+        iframe {
+          width: 100%;
+          height: 600px;
+          border: 2px solid #ddd;
+          border-radius: 5px;
+          margin-top: 20px;
         }
-        .mapCard:hover {
-            transform: scale(1.15) translateY(-10px);
-            box-shadow: 0 20px 50px rgba(0,0,0,0.7);
-        }
-        #map1 { background: linear-gradient(135deg, #56ab2f, #a8e063); }
-        #map2 { background: linear-gradient(135deg, #ff0000, #ff7f00, #ffaa00); }
-        #map3 { background: linear-gradient(135deg, #4facfe, #00f2fe, #b4e0ff); }
-        .gameModeSelect {
-            display: flex;
-            gap: 15px;
-            margin-top: 20px;
-            flex-wrap: wrap;
-            justify-content: center;
-            max-width: 600px;
-        }
-        .modeBtn {
-            padding: 10px 20px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            border: 3px solid white;
-            border-radius: 10px;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .modeBtn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 0 20px rgba(255,255,255,0.5);
-        }
-        .modeBtn.selected {
-            background: linear-gradient(135deg, #ffd700, #ff8c00);
-            border-color: #ffff00;
-        }
-        #gameContainer {
-            display: none;
-            width: 100vw;
-            height: 100vh;
-        }
-        #gameCanvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            filter: brightness(1.05) contrast(1.1);
-        }
-        #ui {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            color: white;
-            font-size: 18px;
-            background: linear-gradient(135deg, rgba(0,0,0,0.85), rgba(30,30,30,0.9));
-            padding: 15px 20px;
-            border-radius: 15px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-            border: 2px solid rgba(255,255,255,0.2);
-            backdrop-filter: blur(10px);
-        }
-        #ui div {
-            margin: 5px 0;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-        }
-        #heroPanel {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            color: white;
-            font-size: 16px;
-            background: linear-gradient(135deg, rgba(139,0,139,0.9), rgba(75,0,130,0.9));
-            padding: 15px;
-            border-radius: 15px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-            border: 2px solid rgba(255,215,0,0.4);
-            backdrop-filter: blur(10px);
-            min-width: 200px;
-        }
-        #towerMenu {
-            position: absolute;
-            bottom: 15px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 8px;
-            background: linear-gradient(135deg, rgba(0,0,0,0.9), rgba(30,30,30,0.95));
-            padding: 12px;
-            border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.7);
-            border: 3px solid rgba(255,255,255,0.3);
-            max-width: 95vw;
-            overflow-x: auto;
-        }
-        .towerBtn {
-            width: 65px;
-            height: 65px;
-            border: 3px solid rgba(255,255,255,0.6);
-            border-radius: 12px;
-            cursor: pointer;
-            font-size: 9px;
-            font-weight: bold;
-            color: white;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
-            flex-shrink: 0;
-        }
-        .towerBtn:hover { 
-            transform: scale(1.1) translateY(-3px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.8);
-        }
-        .towerBtn.selected { 
-            border-color: #ffff00;
-            box-shadow: 0 0 25px rgba(255,255,0,0.8);
-            animation: pulse 1s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-        #upgradePanel {
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: linear-gradient(135deg, rgba(0,0,0,0.95), rgba(20,20,40,0.95));
-            padding: 20px;
-            border-radius: 20px;
-            color: white;
-            display: none;
-            width: 320px;
-            max-height: 85vh;
-            overflow-y: auto;
-            box-shadow: 0 10px 50px rgba(0,0,0,0.8);
-            border: 3px solid rgba(255,255,255,0.3);
-            backdrop-filter: blur(15px);
-        }
-        #upgradePanel h3 {
-            margin-bottom: 15px;
-            font-size: 20px;
-            text-align: center;
-            color: #ffd700;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-        }
-        .upgradeBtn {
-            background: linear-gradient(135deg, #4CAF50, #45a049);
-            color: white;
-            border: none;
-            padding: 10px;
-            margin: 6px 0;
-            border-radius: 10px;
-            cursor: pointer;
-            width: 100%;
-            text-align: left;
-            font-weight: bold;
-            font-size: 11px;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-            border: 2px solid rgba(255,255,255,0.3);
-        }
-        .upgradeBtn:hover { 
-            background: linear-gradient(135deg, #45a049, #3d8b40);
-            transform: translateX(5px);
-        }
-        .upgradeBtn:disabled { 
-            background: linear-gradient(135deg, #555, #444);
-            cursor: not-allowed;
-            opacity: 0.5;
-            transform: none;
-        }
-        #startWaveBtn {
-            position: absolute;
-            top: 180px;
-            left: 15px;
-            background: linear-gradient(135deg, #ff4444, #cc0000);
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            font-size: 18px;
-            font-weight: bold;
-            border-radius: 15px;
-            cursor: pointer;
-            box-shadow: 0 8px 25px rgba(255,0,0,0.5);
-            border: 3px solid rgba(255,255,255,0.4);
-            transition: all 0.3s ease;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-        }
-        #startWaveBtn:hover { 
-            background: linear-gradient(135deg, #ff0000, #990000);
-            transform: scale(1.05);
-        }
-        #powersPanel {
-            position: absolute;
-            top: 280px;
-            left: 15px;
-            background: linear-gradient(135deg, rgba(0,0,0,0.85), rgba(30,30,30,0.9));
-            padding: 10px;
-            border-radius: 10px;
-            border: 2px solid rgba(255,255,255,0.2);
-        }
-        .powerBtn {
-            width: 50px;
-            height: 50px;
-            margin: 5px;
-            background: linear-gradient(135deg, #9C27B0, #7B1FA2);
-            border: 2px solid white;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s;
-        }
-        .powerBtn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 0 15px rgba(156,39,176,0.8);
-        }
-        .powerBtn.disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-        }
-        #knowledgeBtn {
-            position: absolute;
-            bottom: 15px;
-            left: 15px;
-            background: linear-gradient(135deg, #0097A7, #00838F);
-            color: white;
-            border: 3px solid white;
-            padding: 12px 25px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        #knowledgeBtn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 20px rgba(0,151,167,0.8);
-        }
-        #knowledgePanel {
-            display: none;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: linear-gradient(135deg, rgba(0,0,0,0.95), rgba(20,20,40,0.95));
-            padding: 30px;
-            border-radius: 20px;
-            border: 3px solid rgba(255,255,255,0.3);
-            max-width: 600px;
-            max-height: 80vh;
-            overflow-y: auto;
-            color: white;
-            z-index: 1000;
-        }
-        .knowledgeItem {
-            background: rgba(255,255,255,0.1);
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 10px;
-            border: 2px solid rgba(255,255,255,0.2);
-        }
-        .knowledgeItem.unlocked {
-            border-color: #4CAF50;
-            background: rgba(76,175,80,0.2);
-        }
-    </style>
-</head>
-<body>
-    <div id="titleScreen">
-        <h1>BLOONS TD 6</h1>
-        <div class="subtitle">Select Your Battlefield</div>
-        <div class="mapSelect">
-            <div class="mapCard" id="map1">
-                <div>🌿 MEADOW</div>
-            </div>
-            <div class="mapCard" id="map2">
-                <div>🌋 LAVA PIT</div>
-            </div>
-            <div class="mapCard" id="map3">
-                <div>❄️ FROZEN TUNDRA</div>
-            </div>
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h1>🌐 Web Proxy Server</h1>
+        <div class="input-group">
+          <input type="text" id="urlInput" placeholder="Enter URL (e.g., https://example.com)" />
+          <button onclick="loadUrl()">Load Website</button>
         </div>
-        <div class="subtitle" style="margin-top: 30px; font-size: 24px;">Select Game Mode</div>
-        <div class="gameModeSelect">
-            <div class="modeBtn selected" data-mode="standard">Standard</div>
-            <div class="modeBtn" data-mode="halfcash">Half Cash</div>
-            <div class="modeBtn" data-mode="impoppable">Impoppable</div>
-            <div class="modeBtn" data-mode="chimps">CHIMPS</div>
-            <div class="modeBtn" data-mode="doublehp">Double HP MOABs</div>
+        <div class="info">
+          <strong>How to use:</strong>
+          <ul>
+            <li>Enter any website URL above</li>
+            <li>Click "Load Website" to access it through the proxy</li>
+            <li>The proxy will bypass most network restrictions</li>
+          </ul>
+          <strong>API Endpoint:</strong>
+          <code>GET /proxy?url=YOUR_URL</code>
         </div>
-        <button style="margin-top: 30px; padding: 15px 40px; font-size: 20px; background: linear-gradient(135deg, #4CAF50, #45a049); border: 3px solid white; border-radius: 15px; color: white; font-weight: bold; cursor: pointer;" id="startGameBtn">START GAME</button>
-    </div>
-    <div id="gameContainer">
-        <canvas id="gameCanvas"></canvas>
-        <div id="ui">
-            <div>💰 Money: $<span id="money">650</span></div>
-            <div>❤️ Lives: <span id="lives">150</span></div>
-            <div>🎯 Round: <span id="round">1</span></div>
-            <div style="font-size: 14px; color: #ffeb3b;" id="modeDisplay">Mode: Standard</div>
-        </div>
-        <div id="heroPanel">
-            <div style="font-size: 18px; font-weight: bold; margin-bottom: 10px;" id="heroName">🦸 Quincy</div>
-            <div>Level: <span id="heroLevel">1</span></div>
-            <div style="margin-top: 5px;">
-                <div style="background: rgba(0,0,0,0.5); height: 10px; border-radius: 5px; overflow: hidden;">
-                    <div id="heroXPBar" style="background: linear-gradient(90deg, #4CAF50, #8BC34A); height: 100%; width: 0%; transition: width 0.3s;"></div>
-                </div>
-            </div>
-            <div style="font-size: 12px; margin-top: 5px; color: #ccc;" id="heroAbility">Ability: Rapid Shot</div>
-        </div>
-        <button id="startWaveBtn" onclick="startWave()">🚀 START WAVE</button>
-        <div id="powersPanel">
-            <div style="color: white; font-size: 12px; font-weight: bold; margin-bottom: 5px;">Powers</div>
-            <div class="powerBtn" onclick="usePower('cash')" title="Cash Drop">💰</div>
-            <div class="powerBtn" onclick="usePower('boost')" title="Monkey Boost">⚡</div>
-            <div class="powerBtn" onclick="usePower('storm')" title="Super Monkey Storm">🌪️</div>
-        </div>
-        <button id="knowledgeBtn" onclick="toggleKnowledge()">🧠 Knowledge</button>
-        <div id="knowledgePanel">
-            <h2 style="text-align: center; margin-bottom: 20px;">Monkey Knowledge</h2>
-            <div style="text-align: center; margin-bottom: 20px;">Knowledge Points: <span id="kPoints">5</span></div>
-            <div id="knowledgeList"></div>
-            <button style="margin-top: 20px; padding: 10px 20px; background: #ff4444; border: none; color: white; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%;" onclick="toggleKnowledge()">Close</button>
-        </div>
-        <div id="towerMenu"></div>
-        <div id="upgradePanel"></div>
-    </div>
-
-    <script>
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+        <div id="content"></div>
+      </div>
+      <script>
+        function loadUrl() {
+          const url = document.getElementById('urlInput').value;
+          if (!url) {
+            alert('Please enter a URL');
+            return;
+          }
+          const contentDiv = document.getElementById('content');
+          contentDiv.innerHTML = '<iframe src="/proxy?url=' + encodeURIComponent(url) + '"></iframe>';
         }
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
+      </script>
+    </body>
+    </html>
+  `);
+});
 
-        let gameState = {
-            money: 650,
-            lives: 150,
-            round: 1,
-            selectedTowerType: null,
-            selectedTower: null,
-            towers: [],
-            bloons: [],
-            projectiles: [],
-            particles: [],
-            waveActive: false,
-            currentMap: null,
-            nextBloonSpawn: 0,
-            bloonQueue: [],
-            selectedMapName: 'meadow',
-            selectedMode: 'standard',
-            hero: null,
-            heroXP: 0,
-            heroLevel: 1,
-            powers: { cash: 3, boost: 2, storm: 1 },
-            knowledgePoints: 5,
-            knowledge: {},
-            canSell: true,
-            canUsePowers: true,
-            moabHPMultiplier: 1
-        };
+// Main proxy endpoint
+app.get('/proxy', async (req, res) => {
+  try {
+    const targetUrl = req.query.url;
+    
+    if (!targetUrl) {
+      return res.status(400).send('URL parameter is required');
+    }
 
-        const heroes = {
-            quincy: {
-                name: 'Quincy',
-                emoji: '🏹',
-                cost: 0,
-                range: 150,
-                damage: 1,
-                fireRate: 30,
-                color: '#2E7D32',
-                projectileSpeed: 15,
-                xpPerLevel: [0, 180, 460, 1000, 1860, 3280, 5180, 8320, 9380, 13620, 16380, 14400, 16650, 14940, 16380, 17820, 19260, 20700, 16470, 17280],
-                abilities: {
-                    1: 'Rapid Shot',
-                    3: 'Storm of Arrows',
-                    10: 'Arrow Storm',
-                    20: 'Master Archer'
-                }
-            }
-        };
+    // Validate URL
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(targetUrl);
+    } catch (e) {
+      return res.status(400).send('Invalid URL provided');
+    }
 
-        const monkeyKnowledge = {
-            startCash: { name: '+$200 Starting Cash', cost: 1, unlocked: false, effect: 'money' },
-            moreHealth: { name: '+25 Starting Lives', cost: 1, unlocked: false, effect: 'lives' },
-            dartPierce: { name: 'Dart Monkeys +1 Pierce', cost: 2, unlocked: false, effect: 'dartPierce' },
-            bombRange: { name: 'Bomb Shooters +10% Range', cost: 2, unlocked: false, effect: 'bombRange' },
-            heroCost: { name: 'Heroes Place Faster', cost: 3, unlocked: false, effect: 'hero' }
-        };
+    // Make request to target URL with headers that bypass restrictions
+    const response = await axios.get(targetUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1'
+      },
+      maxRedirects: 5,
+      validateStatus: function (status) {
+        return status < 500; // Accept any status code less than 500
+      },
+      responseType: 'arraybuffer'
+    });
 
-        const maps = {
-            meadow: {
-                name: 'Meadow',
-                bg: '#7CB342',
-                pathColor: '#D7CCC8',
-                path: [
-                    {x: 50, y: 300}, {x: 400, y: 300}, {x: 400, y: 150},
-                    {x: 700, y: 150}, {x: 700, y: 450}, {x: 1000, y: 450},
-                    {x: 1000, y: 300}, {x: 1920, y: 300}
-                ]
-            },
-            lava: {
-                name: 'Lava Pit',
-                bg: '#BF360C',
-                pathColor: '#424242',
-                path: [
-                    {x: 50, y: 400}, {x: 350, y: 400}, {x: 350, y: 150},
-                    {x: 650, y: 150}, {x: 650, y: 550}, {x: 950, y: 550},
-                    {x: 950, y: 300}, {x: 1920, y: 300}
-                ]
-            },
-            frozen: {
-                name: 'Frozen Tundra',
-                bg: '#E1F5FE',
-                pathColor: '#B0BEC5',
-                path: [
-                    {x: 50, y: 500}, {x: 300, y: 500}, {x: 300, y: 200},
-                    {x: 600, y: 200}, {x: 600, y: 500}, {x: 900, y: 500},
-                    {x: 900, y: 250}, {x: 1920, y: 250}
-                ]
-            }
-        };
+    // Forward response headers
+    const contentType = response.headers['content-type'];
+    if (contentType) {
+      res.setHeader('Content-Type', contentType);
+    }
 
-        const gameModes = {
-            standard: { name: 'Standard', cashMult: 1, livesStart: 150, sellAllowed: true },
-            halfcash: { name: 'Half Cash', cashMult: 0.5, livesStart: 150, sellAllowed: true },
-            impoppable: { name: 'Impoppable', cashMult: 1, livesStart: 1, sellAllowed: true },
-            chimps: { name: 'CHIMPS', cashMult: 1, livesStart: 1, sellAllowed: false, noPowers: true, noKnowledge: true },
-            doublehp: { name: 'Double HP MOABs', cashMult: 1, livesStart: 150, moabMult: 2, sellAllowed: true }
-        };
+    // Modify HTML content to fix relative URLs
+    if (contentType && contentType.includes('text/html')) {
+      let html = response.data.toString('utf-8');
+      
+      // Convert relative URLs to absolute
+      const baseUrl = `${parsedUrl.protocol}//${parsedUrl.host}`;
+      html = html.replace(/href="\/([^"]*)"/g, `href="${baseUrl}/$1"`);
+      html = html.replace(/src="\/([^"]*)"/g, `src="${baseUrl}/$1"`);
+      
+      // Inject base tag
+      html = html.replace(/<head>/i, `<head><base href="${baseUrl}/">`);
+      
+      res.send(html);
+    } else {
+      res.send(response.data);
+    }
 
-        const towerTypes = {
-            dart: { name: 'Dart Monkey', cost: 200, range: 120, damage: 1, fireRate: 40, color: '#8B4513', projectileSpeed: 10, emoji: '🐵', pierce: 2 },
-            boomerang: { name: 'Boomerang', cost: 325, range: 90, damage: 1, fireRate: 50, color: '#1976D2', projectileSpeed: 8, emoji: '🪃', pierce: 3 },
-            bomb: { name: 'Bomb', cost: 525, range: 130, damage: 1, fireRate: 80, color: '#212121', projectileSpeed: 9, splash: 40, emoji: '💣', pierce: 40 },
-            tack: { name: 'Tack', cost: 280, range: 80, damage: 1, fireRate: 25, color: '#757575', projectileSpeed: 7, emoji: '📌', pierce: 1, multishot: 8 },
-            ice: { name: 'Ice', cost: 450, range: 100, damage: 0, fireRate: 120, color: '#4FC3F7', freeze: 60, emoji: '❄️' },
-            glue: { name: 'Glue', cost: 275, range: 110, damage: 0, fireRate: 90, color: '#9C27B0', slow: 0.5, emoji: '🧪' },
-            sniper: { name: 'Sniper', cost: 350, range: 999, damage: 2, fireRate: 100, color: '#2E7D32', projectileSpeed: 40, emoji: '🎯', pierce: 3 },
-            wizard: { name: 'Wizard', cost: 375, range: 120, damage: 1, fireRate: 55, color: '#7B1FA2', projectileSpeed: 10, emoji: '🧙', pierce: 2, magic: true },
-            super: { name: 'Super', cost: 2500, range: 140, damage: 1, fireRate: 5, color: '#FFD700', projectileSpeed: 20, emoji: '⭐', pierce: 2 },
-            ninja: { name: 'Ninja', cost: 500, range: 110, damage: 1, fireRate: 30, color: '#000000', projectileSpeed: 12, emoji: '🥷', pierce: 2, camo: true },
-            alchemist: { name: 'Alchemist', cost: 450, range: 100, damage: 1, fireRate: 60, color: '#0097A7', projectileSpeed: 9, emoji: '⚗️', pierce: 15, magic: true },
-            farm: { name: 'Farm', cost: 850, range: 0, damage: 0, fireRate: 300, color: '#F57F17', emoji: '🍌' },
-            village: { name: 'Village', cost: 1000, range: 200, damage: 0, fireRate: 0, color: '#5D4037', emoji: '🏘️' }
-        };
+  } catch (error) {
+    console.error('Proxy error:', error.message);
+    res.status(500).send(`
+      <html>
+        <body style="font-family: Arial; padding: 20px;">
+          <h2>Error loading website</h2>
+          <p>${error.message}</p>
+          <p>The website may be blocking proxy access or may be unavailable.</p>
+        </body>
+      </html>
+    `);
+  }
+});
 
-        const upgrades = {
-            dart: {
-                path1: ['Sharp Shots', 'Razor Sharp Shots', 'Spike-o-pult', 'Juggernaut', 'Ultra-Juggernaut'],
-                path2: ['Quick Shots', 'Very Quick Shots', 'Triple Shot', 'Super Monkey Fan Club', 'Plasma Fan Club'],
-                path3: ['Long Range', 'Enhanced Eyesight', 'Crossbow', 'Sharp Splinter', 'Crossbow Master']
-            },
-            super: {
-                path1: ['Laser Vision', 'Plasma Blasts', 'Sun Avatar', 'Sun Temple', 'True Sun God'],
-                path2: ['Super Range', 'Epic Range', 'Robo-Monkey', 'Tech Terror', 'The Anti-Bloon'],
-                path3: ['Ultravision', 'Knockback', 'Dark Knight', 'Dark Champion', 'Legend of the Night']
-            }
-        };
+// API endpoint for programmatic access
+app.post('/api/proxy', async (req, res) => {
+  try {
+    const { url, method = 'GET', headers = {}, data } = req.body;
+    
+    if (!url) {
+      return res.status(400).json({ error: 'URL is required' });
+    }
 
-        const bloonTypes = {
-            red: { hp: 1, speed: 1.5, color: '#FF1744', reward: 1, child: null, size: 14 },
-            blue: { hp: 2, speed: 2, color: '#2196F3', reward: 2, child: 'red', size: 15 },
-            green: { hp: 3, speed: 2.5, color: '#4CAF50', reward: 3, child: 'blue', size: 16 },
-            yellow: { hp: 4, speed: 4, color: '#FFEB3B', reward: 4, child: 'green', size: 17 },
-            pink: { hp: 5, speed: 4.5, color: '#F06292', reward: 5, child: 'yellow', size: 18 },
-            black: { hp: 11, speed: 2.5, color: '#000000', reward: 11, child: 'pink', explodeImmune: true, size: 20 },
-            white: { hp: 11, speed: 2.8, color: '#FAFAFA', reward: 11, child: 'pink', freezeImmune: true, size: 20 },
-            purple: { hp: 11, speed: 4, color: '#9C27B0', reward: 11, child: 'pink', magicImmune: true, size: 20 },
-            lead: { hp: 23, speed: 1.2, color: '#78909C', reward: 23, child: 'black', sharpImmune: true, size: 22 },
-            zebra: { hp: 23, speed: 2.5, color: '#000', reward: 23, child: 'black', stripe: 'white', size: 22 },
-            rainbow: { hp: 47, speed: 3, color: '#E91E63', gradient: true, reward: 47, child: 'zebra', size: 24 },
-            ceramic: { hp: 104, speed: 3.5, color: '#6D4C41', reward: 104, child: 'rainbow', size: 26 },
-            moab: { hp: 200, speed: 1.2, color: '#1565C0', reward: 200, child: 'ceramic', isMoab: true, size: 50 },
-            bfb: { hp: 700, speed: 0.8, color: '#D32F2F', reward: 700, child: 'moab', isMoab: true, size: 60 },
-            zomg: { hp: 4000, speed: 0.6, color: '#388E3C', reward: 4000, child: 'bfb', isMoab: true, size: 70 },
-            ddt: { hp: 400, speed: 3.5, color: '#1a1a1a', reward: 800, child: 'ceramic', isMoab: true, camo: true, explodeImmune: true, sharpImmune: true, size: 45 },
-            bad: { hp: 20000, speed: 0.6, color: '#6A1B9A', reward: 20000, child: 'ddt', isMoab: true, size: 90 }
-        };
+    const response = await axios({
+      method,
+      url,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        ...headers
+      },
+      data,
+      maxRedirects: 5,
+      validateStatus: () => true
+    });
 
-        // Initialize event listeners
-        document.addEventListener('DOMContentLoaded', function() {
-            // Map selection
-            document.querySelectorAll('.mapCard').forEach((card, index) => {
-                card.addEventListener('click', function() {
-                    const maps = ['meadow', 'lava', 'frozen'];
-                    gameState.selectedMapName = maps[index];
-                    document.querySelectorAll('.mapCard').forEach(m => m.style.border = '5px solid rgba(255,255,255,0.9)');
-                    this.style.border = '5px solid #FFD700';
-                });
-            });
-            
-            // Mode selection
-            document.querySelectorAll('.modeBtn').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    gameState.selectedMode = this.dataset.mode;
-                    document.querySelectorAll('.modeBtn').forEach(m => m.classList.remove('selected'));
-                    this.classList.add('selected');
-                });
-            });
-            
-            // Start game button
-            document.getElementById('startGameBtn').addEventListener('click', startGame);
-        });
+    res.json({
+      status: response.status,
+      headers: response.headers,
+      data: response.data
+    });
 
-        function startGame() {
-            const mode = gameModes[gameState.selectedMode];
-            gameState.currentMap = maps[gameState.selectedMapName];
-            gameState.lives = mode.livesStart;
-            gameState.canSell = mode.sellAllowed;
-            gameState.canUsePowers = !mode.noPowers;
-            gameState.moabHPMultiplier = mode.moabMult || 1;
-            
-            // Apply Monkey Knowledge bonuses
-            if (!mode.noKnowledge) {
-                if (gameState.knowledge.startCash) gameState.money += 200;
-                if (gameState.knowledge.moreHealth) gameState.lives += 25;
-            }
-            
-            // Place Hero
-            gameState.hero = {
-                ...heroes.quincy,
-                x: 200,
-                y: parent.y,
-                pathIndex: parent.pathIndex,
-                effects: {},
-                angle: 0
-            };
-        }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
-        function updateParticles() {
-            for (let i = gameState.particles.length - 1; i >= 0; i--) {
-                const p = gameState.particles[i];
-                p.x += p.vx;
-                p.y += p.vy;
-                p.vy += 0.2;
-                p.life--;
-                if (p.life <= 0) {
-                    gameState.particles.splice(i, 1);
-                }
-            }
-        }
-
-        function drawTowers() {
-            for (let tower of gameState.towers) {
-                if (tower === gameState.selectedTower && tower.range > 0) {
-                    const gradient = ctx.createRadialGradient(tower.x, tower.y, 0, tower.x, tower.y, tower.range);
-                    gradient.addColorStop(0, 'rgba(255, 255, 0, 0.3)');
-                    gradient.addColorStop(1, 'rgba(255, 255, 0, 0)');
-                    ctx.fillStyle = gradient;
-                    ctx.beginPath();
-                    ctx.arc(tower.x, tower.y, tower.range, 0, Math.PI * 2);
-                    ctx.fill();
-                    
-                    ctx.strokeStyle = 'rgba(255, 255, 0, 0.6)';
-                    ctx.lineWidth = 3;
-                    ctx.setLineDash([10, 5]);
-                    ctx.beginPath();
-                    ctx.arc(tower.x, tower.y, tower.range, 0, Math.PI * 2);
-                    ctx.stroke();
-                    ctx.setLineDash([]);
-                }
-                
-                const gradient = ctx.createRadialGradient(tower.x - 8, tower.y - 8, 5, tower.x, tower.y, 25);
-                gradient.addColorStop(0, shadeColor(tower.color, 40));
-                gradient.addColorStop(1, shadeColor(tower.color, -30));
-                ctx.fillStyle = gradient;
-                ctx.beginPath();
-                ctx.arc(tower.x, tower.y, 25, 0, Math.PI * 2);
-                ctx.fill();
-                
-                ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-                ctx.lineWidth = 3;
-                ctx.stroke();
-                
-                ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.arc(tower.x + 2, tower.y + 2, 25, 0, Math.PI * 2);
-                ctx.stroke();
-                
-                ctx.font = 'bold 24px Arial';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillStyle = '#FFF';
-                ctx.fillText(tower.emoji, tower.x, tower.y);
-                
-                const totalUpgrades = tower.upgrades.path1 + tower.upgrades.path2 + tower.upgrades.path3;
-                if (totalUpgrades > 0) {
-                    ctx.fillStyle = '#FFD700';
-                    ctx.font = 'bold 14px Arial';
-                    ctx.fillText('★'.repeat(Math.min(totalUpgrades, 5)), tower.x, tower.y + 35);
-                }
-            }
-        }
-
-        function drawBloons() {
-            for (let bloon of gameState.bloons) {
-                const data = bloonTypes[bloon.type];
-                const size = data.size;
-                
-                ctx.save();
-                ctx.translate(bloon.x, bloon.y);
-                ctx.rotate(bloon.angle);
-                
-                if (bloon.effects.frozen) {
-                    const iceGradient = ctx.createRadialGradient(-5, -5, 0, 0, 0, size);
-                    iceGradient.addColorStop(0, '#E1F5FE');
-                    iceGradient.addColorStop(1, '#4FC3F7');
-                    ctx.fillStyle = iceGradient;
-                } else if (data.gradient) {
-                    const rainbowGradient = ctx.createRadialGradient(-5, -5, 0, 0, 0, size);
-                    rainbowGradient.addColorStop(0, '#FF1744');
-                    rainbowGradient.addColorStop(0.33, '#FFEB3B');
-                    rainbowGradient.addColorStop(0.66, '#4CAF50');
-                    rainbowGradient.addColorStop(1, '#2196F3');
-                    ctx.fillStyle = rainbowGradient;
-                } else {
-                    const gradient = ctx.createRadialGradient(-size/3, -size/3, 0, 0, 0, size);
-                    gradient.addColorStop(0, shadeColor(data.color, 60));
-                    gradient.addColorStop(1, data.color);
-                    ctx.fillStyle = gradient;
-                }
-                
-                ctx.beginPath();
-                ctx.arc(0, 0, size, 0, Math.PI * 2);
-                ctx.fill();
-                
-                if (data.stripe) {
-                    ctx.fillStyle = data.stripe;
-                    for (let i = 0; i < 3; i++) {
-                        ctx.fillRect(-size, -size + i * size/1.5, size * 2, size/4);
-                    }
-                }
-                
-                ctx.shadowColor = 'rgba(0,0,0,0.5)';
-                ctx.shadowBlur = 10;
-                ctx.shadowOffsetX = 3;
-                ctx.shadowOffsetY = 3;
-                ctx.strokeStyle = shadeColor(data.color, -40);
-                ctx.lineWidth = 3;
-                ctx.stroke();
-                ctx.shadowColor = 'transparent';
-                
-                ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.arc(-size/3, -size/3, size/3, 0, Math.PI * 2);
-                ctx.stroke();
-                
-                // Draw camo overlay
-                if (data.camo) {
-                    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-                    ctx.beginPath();
-                    ctx.arc(0, 0, size, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-                
-                if (data.isMoab) {
-                    ctx.fillStyle = '#FFF';
-                    ctx.font = `bold ${size/3}px Arial`;
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText(bloon.type.toUpperCase(), 0, 0);
-                    
-                    const hpPercent = bloon.hp / bloon.maxHp;
-                    const barWidth = size * 1.5;
-                    const barHeight = 8;
-                    
-                    ctx.fillStyle = 'rgba(0,0,0,0.7)';
-                    ctx.fillRect(-barWidth/2, size + 5, barWidth, barHeight);
-                    
-                    const hpGradient = ctx.createLinearGradient(-barWidth/2, 0, barWidth/2, 0);
-                    hpGradient.addColorStop(0, '#FF1744');
-                    hpGradient.addColorStop(0.5, '#FFEB3B');
-                    hpGradient.addColorStop(1, '#4CAF50');
-                    ctx.fillStyle = hpGradient;
-                    ctx.fillRect(-barWidth/2, size + 5, barWidth * hpPercent, barHeight);
-                    
-                    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-                    ctx.lineWidth = 2;
-                    ctx.strokeRect(-barWidth/2, size + 5, barWidth, barHeight);
-                }
-                
-                ctx.restore();
-            }
-        }
-
-        function drawProjectiles() {
-            for (let proj of gameState.projectiles) {
-                for (let i = 0; i < proj.trail.length; i++) {
-                    const t = proj.trail[i];
-                    const alpha = (i + 1) / proj.trail.length * 0.5;
-                    ctx.fillStyle = proj.color + Math.floor(alpha * 255).toString(16).padStart(2, '0');
-                    ctx.beginPath();
-                    ctx.arc(t.x, t.y, 4, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-                
-                const gradient = ctx.createRadialGradient(proj.x - 2, proj.y - 2, 0, proj.x, proj.y, 8);
-                gradient.addColorStop(0, '#FFFFFF');
-                gradient.addColorStop(0.5, proj.color);
-                gradient.addColorStop(1, shadeColor(proj.color, -40));
-                ctx.fillStyle = gradient;
-                ctx.beginPath();
-                ctx.arc(proj.x, proj.y, 8, 0, Math.PI * 2);
-                ctx.fill();
-                
-                ctx.strokeStyle = 'rgba(255,255,255,0.8)';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                
-                if (proj.splash) {
-                    ctx.strokeStyle = 'rgba(255,100,0,0.3)';
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.arc(proj.x, proj.y, proj.splash * 0.5, 0, Math.PI * 2);
-                    ctx.stroke();
-                }
-            }
-        }
-
-        function drawParticles() {
-            for (let p of gameState.particles) {
-                const alpha = p.life / p.maxLife;
-                ctx.fillStyle = p.color + Math.floor(alpha * 255).toString(16).padStart(2, '0');
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, 4 * alpha, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-    </script>
-</body>
-</html> 400,
-                fireTimer: 0,
-                level: 1,
-                xp: 0,
-                upgrades: {path1: 0, path2: 0, path3: 0}
-            };
-            
-            document.getElementById('titleScreen').style.display = 'none';
-            document.getElementById('gameContainer').style.display = 'block';
-            document.getElementById('modeDisplay').textContent = 'Mode: ' + mode.name;
-            
-            initTowerMenu();
-            initKnowledge();
-            updateUI();
-            gameLoop();
-        }
-
-        function initTowerMenu() {
-            const menu = document.getElementById('towerMenu');
-            menu.innerHTML = '';
-            
-            for (const [key, tower] of Object.entries(towerTypes)) {
-                const btn = document.createElement('div');
-                btn.className = 'towerBtn';
-                btn.style.background = `linear-gradient(135deg, ${tower.color}, ${shadeColor(tower.color, -30)})`;
-                btn.innerHTML = `<div style="font-size: 24px">${tower.emoji}</div><div style="font-size: 9px;">${tower.name}</div><div style="font-size: 10px;">${tower.cost}</div>`;
-                btn.onclick = () => selectTower(key);
-                menu.appendChild(btn);
-            }
-        }
-
-        function initKnowledge() {
-            const list = document.getElementById('knowledgeList');
-            list.innerHTML = '';
-            
-            for (const [key, knowledge] of Object.entries(monkeyKnowledge)) {
-                const item = document.createElement('div');
-                item.className = 'knowledgeItem' + (gameState.knowledge[key] ? ' unlocked' : '');
-                item.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <div style="font-weight: bold;">${knowledge.name}</div>
-                            <div style="font-size: 12px; color: #ccc;">Cost: ${knowledge.cost} points</div>
-                        </div>
-                        ${!gameState.knowledge[key] ? 
-                            `<button onclick="unlockKnowledge('${key}')" style="padding: 8px 15px; background: #4CAF50; border: none; color: white; border-radius: 5px; cursor: pointer; font-weight: bold;">Unlock</button>` : 
-                            '<div style="color: #4CAF50; font-weight: bold;">✓ UNLOCKED</div>'}
-                    </div>
-                `;
-                list.appendChild(item);
-            }
-            
-            document.getElementById('kPoints').textContent = gameState.knowledgePoints;
-        }
-
-        function unlockKnowledge(key) {
-            const knowledge = monkeyKnowledge[key];
-            if (gameState.knowledgePoints >= knowledge.cost && !gameState.knowledge[key]) {
-                gameState.knowledgePoints -= knowledge.cost;
-                gameState.knowledge[key] = true;
-                initKnowledge();
-            }
-        }
-
-        function toggleKnowledge() {
-            const panel = document.getElementById('knowledgePanel');
-            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-        }
-
-        function shadeColor(color, percent) {
-            const num = parseInt(color.replace('#',''), 16);
-            const amt = Math.round(2.55 * percent);
-            const R = Math.max(0, Math.min(255, (num >> 16) + amt));
-            const G = Math.max(0, Math.min(255, (num >> 8 & 0x00FF) + amt));
-            const B = Math.max(0, Math.min(255, (num & 0x0000FF) + amt));
-            return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
-        }
-
-        function selectTower(type) {
-            gameState.selectedTowerType = type;
-            gameState.selectedTower = null;
-            document.querySelectorAll('.towerBtn').forEach(b => b.classList.remove('selected'));
-            event.target.closest('.towerBtn').classList.add('selected');
-            document.getElementById('upgradePanel').style.display = 'none';
-        }
-
-        function usePower(type) {
-            if (!gameState.canUsePowers || gameState.powers[type] <= 0) return;
-            
-            gameState.powers[type]--;
-            
-            if (type === 'cash') {
-                gameState.money += 2000;
-                createParticles(canvas.width/2, canvas.height/2, '#FFD700', 50);
-            } else if (type === 'boost') {
-                // Temporarily boost all towers
-                for (let tower of gameState.towers) {
-                    tower.fireRate = Math.max(1, tower.fireRate * 0.3);
-                    setTimeout(() => {
-                        tower.fireRate = tower.fireRate / 0.3;
-                    }, 10000);
-                }
-                createParticles(canvas.width/2, canvas.height/2, '#FFEB3B', 50);
-            } else if (type === 'storm') {
-                // Damage all bloons
-                for (let bloon of gameState.bloons) {
-                    damageBloon(bloon, 10);
-                }
-                createParticles(canvas.width/2, canvas.height/2, '#2196F3', 100);
-            }
-            
-            updateUI();
-        }
-
-        function startWave() {
-            if (gameState.waveActive) return;
-            gameState.waveActive = true;
-            spawnWave();
-        }
-
-        function spawnWave() {
-            const round = gameState.round;
-            gameState.bloonQueue = [];
-            
-            if (round <= 10) {
-                for (let i = 0; i < round * 5; i++) gameState.bloonQueue.push('red');
-            } else if (round <= 20) {
-                for (let i = 0; i < round * 3; i++) gameState.bloonQueue.push('blue');
-                for (let i = 0; i < round; i++) gameState.bloonQueue.push('green');
-            } else if (round <= 30) {
-                for (let i = 0; i < round * 2; i++) gameState.bloonQueue.push('green');
-                for (let i = 0; i < round; i++) gameState.bloonQueue.push('yellow');
-            } else if (round <= 39) {
-                for (let i = 0; i < round; i++) gameState.bloonQueue.push('pink');
-                for (let i = 0; i < 5; i++) gameState.bloonQueue.push('black');
-                for (let i = 0; i < 5; i++) gameState.bloonQueue.push('white');
-                for (let i = 0; i < 3; i++) gameState.bloonQueue.push('purple');
-            } else if (round === 40) {
-                gameState.bloonQueue.push('moab');
-            } else if (round <= 60) {
-                for (let i = 0; i < 10; i++) gameState.bloonQueue.push('ceramic');
-                for (let i = 0; i < 5; i++) gameState.bloonQueue.push('rainbow');
-            } else if (round === 60) {
-                gameState.bloonQueue.push('bfb');
-            } else if (round <= 80) {
-                for (let i = 0; i < 20; i++) gameState.bloonQueue.push('ceramic');
-                if (round % 10 === 0) gameState.bloonQueue.push('moab');
-            } else if (round === 90) {
-                gameState.bloonQueue.push('ddt');
-            } else if (round === 100) {
-                gameState.bloonQueue.push('bad');
-            }
-
-            gameState.nextBloonSpawn = 0;
-        }
-
-        function spawnBloon(type) {
-            const bloonData = bloonTypes[type];
-            const path = gameState.currentMap.path;
-            let hp = bloonData.hp;
-            
-            // Apply MOAB HP multiplier
-            if (bloonData.isMoab) {
-                hp *= gameState.moabHPMultiplier;
-            }
-            
-            gameState.bloons.push({
-                type: type,
-                hp: hp,
-                maxHp: hp,
-                speed: bloonData.speed,
-                x: path[0].x,
-                y: path[0].y,
-                pathIndex: 0,
-                effects: {},
-                angle: 0
-            });
-        }
-
-        canvas.addEventListener('click', (e) => {
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-
-            let clickedTower = null;
-            for (let tower of gameState.towers) {
-                const dist = Math.hypot(tower.x - x, tower.y - y);
-                if (dist < 25) {
-                    clickedTower = tower;
-                    break;
-                }
-            }
-
-            if (clickedTower) {
-                gameState.selectedTower = clickedTower;
-                gameState.selectedTowerType = null;
-                document.querySelectorAll('.towerBtn').forEach(b => b.classList.remove('selected'));
-                showUpgradePanel(clickedTower);
-            } else if (gameState.selectedTowerType) {
-                const cost = towerTypes[gameState.selectedTowerType].cost;
-                if (gameState.money >= cost && !isOnPath(x, y)) {
-                    const towerData = {...towerTypes[gameState.selectedTowerType]};
-                    gameState.towers.push({
-                        type: gameState.selectedTowerType,
-                        x: x,
-                        y: y,
-                        fireTimer: 0,
-                        ...towerData,
-                        upgrades: {path1: 0, path2: 0, path3: 0}
-                    });
-                    gameState.money -= cost;
-                    createParticles(x, y, '#FFD700', 10);
-                    updateUI();
-                }
-            }
-        });
-
-        function isOnPath(x, y) {
-            const path = gameState.currentMap.path;
-            for (let i = 0; i < path.length - 1; i++) {
-                const dist = distanceToSegment(x, y, path[i], path[i + 1]);
-                if (dist < 50) return true;
-            }
-            return false;
-        }
-
-        function distanceToSegment(px, py, p1, p2) {
-            const l2 = Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2);
-            if (l2 === 0) return Math.hypot(px - p1.x, py - p1.y);
-            let t = ((px - p1.x) * (p2.x - p1.x) + (py - p1.y) * (p2.y - p1.y)) / l2;
-            t = Math.max(0, Math.min(1, t));
-            return Math.hypot(px - (p1.x + t * (p2.x - p1.x)), py - (p1.y + t * (p2.y - p1.y)));
-        }
-
-        function showUpgradePanel(tower) {
-            const panel = document.getElementById('upgradePanel');
-            panel.style.display = 'block';
-            panel.innerHTML = `<h3>${tower.emoji} ${tower.name}</h3>`;
-            
-            const paths = upgrades[tower.type] || {path1: [], path2: [], path3: []};
-            
-            for (let i = 1; i <= 3; i++) {
-                const pathUpgrades = paths[`path${i}`] || [];
-                const currentLevel = tower.upgrades[`path${i}`];
-                
-                if (currentLevel < pathUpgrades.length) {
-                    const upgradeName = pathUpgrades[currentLevel];
-                    const cost = 200 * (currentLevel + 1);
-                    const btn = document.createElement('button');
-                    btn.className = 'upgradeBtn';
-                    btn.innerHTML = `Path ${i}: ${upgradeName}<br>💰 ${cost}`;
-                    btn.disabled = gameState.money < cost;
-                    btn.onclick = () => upgradeTower(tower, i, cost);
-                    panel.appendChild(btn);
-                }
-            }
-
-            if (gameState.canSell) {
-                const sellBtn = document.createElement('button');
-                sellBtn.className = 'upgradeBtn';
-                sellBtn.style.background = 'linear-gradient(135deg, #ff4444, #cc0000)';
-                sellBtn.innerHTML = `💸 Sell for ${Math.floor(tower.cost * 0.7)}`;
-                sellBtn.onclick = () => sellTower(tower);
-                panel.appendChild(sellBtn);
-            }
-        }
-
-        function upgradeTower(tower, path, cost) {
-            if (gameState.money >= cost) {
-                tower.upgrades[`path${path}`]++;
-                gameState.money -= cost;
-                tower.cost += cost;
-                
-                tower.damage += 1;
-                tower.range += 15;
-                tower.fireRate = Math.max(3, tower.fireRate - 5);
-                
-                createParticles(tower.x, tower.y, '#00FF00', 15);
-                updateUI();
-                showUpgradePanel(tower);
-            }
-        }
-
-        function sellTower(tower) {
-            const sellPrice = Math.floor(tower.cost * 0.7);
-            gameState.money += sellPrice;
-            gameState.towers = gameState.towers.filter(t => t !== tower);
-            document.getElementById('upgradePanel').style.display = 'none';
-            createParticles(tower.x, tower.y, '#FFD700', 20);
-            updateUI();
-        }
-
-        function updateUI() {
-            document.getElementById('money').textContent = gameState.money;
-            document.getElementById('lives').textContent = gameState.lives;
-            document.getElementById('round').textContent = gameState.round;
-            
-            if (gameState.hero) {
-                document.getElementById('heroLevel').textContent = gameState.hero.level;
-                const xpNeeded = gameState.hero.xpPerLevel[gameState.hero.level] || 99999;
-                const xpPercent = (gameState.hero.xp / xpNeeded) * 100;
-                document.getElementById('heroXPBar').style.width = xpPercent + '%';
-            }
-        }
-
-        function createParticles(x, y, color, count) {
-            for (let i = 0; i < count; i++) {
-                const angle = Math.random() * Math.PI * 2;
-                const speed = Math.random() * 3 + 2;
-                gameState.particles.push({
-                    x: x,
-                    y: y,
-                    vx: Math.cos(angle) * speed,
-                    vy: Math.sin(angle) * speed,
-                    color: color,
-                    life: 30,
-                    maxLife: 30
-                });
-            }
-        }
-
-        function gameLoop() {
-            const map = gameState.currentMap;
-            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-            gradient.addColorStop(0, map.bg);
-            gradient.addColorStop(1, shadeColor(map.bg, -20));
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            drawPath();
-            
-            if (gameState.waveActive && gameState.bloonQueue.length > 0) {
-                if (gameState.nextBloonSpawn <= 0) {
-                    const type = gameState.bloonQueue.shift();
-                    spawnBloon(type);
-                    gameState.nextBloonSpawn = 30;
-                }
-                gameState.nextBloonSpawn--;
-            }
-            
-            updateBloons();
-            updateTowers();
-            updateHero();
-            updateProjectiles();
-            updateParticles();
-            drawTowers();
-            drawHero();
-            drawBloons();
-            drawProjectiles();
-            drawParticles();
-
-            if (gameState.bloons.length === 0 && gameState.waveActive && gameState.bloonQueue.length === 0) {
-                gameState.waveActive = false;
-                gameState.round++;
-                const mode = gameModes[gameState.selectedMode];
-                const cashEarned = (100 + gameState.round * 10) * mode.cashMult;
-                gameState.money += cashEarned;
-                updateUI();
-            }
-
-            if (gameState.lives <= 0) {
-                ctx.fillStyle = 'rgba(0,0,0,0.8)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = '#FF0000';
-                ctx.font = 'bold 72px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText('GAME OVER', canvas.width/2, canvas.height/2);
-                ctx.fillStyle = '#FFFFFF';
-                ctx.font = 'bold 36px Arial';
-                ctx.fillText('Round: ' + gameState.round, canvas.width/2, canvas.height/2 + 60);
-                setTimeout(() => location.reload(), 3000);
-                return;
-            }
-
-            requestAnimationFrame(gameLoop);
-        }
-
-        function drawPath() {
-            const path = gameState.currentMap.path;
-            
-            ctx.strokeStyle = shadeColor(gameState.currentMap.pathColor, -30);
-            ctx.lineWidth = 90;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-            ctx.beginPath();
-            ctx.moveTo(path[0].x, path[0].y);
-            for (let i = 1; i < path.length; i++) {
-                ctx.lineTo(path[i].x, path[i].y);
-            }
-            ctx.stroke();
-            
-            ctx.strokeStyle = gameState.currentMap.pathColor;
-            ctx.lineWidth = 80;
-            ctx.beginPath();
-            ctx.moveTo(path[0].x, path[0].y);
-            for (let i = 1; i < path.length; i++) {
-                ctx.lineTo(path[i].x, path[i].y);
-            }
-            ctx.stroke();
-            
-            ctx.strokeStyle = shadeColor(gameState.currentMap.pathColor, 20);
-            ctx.lineWidth = 4;
-            ctx.setLineDash([20, 15]);
-            ctx.beginPath();
-            ctx.moveTo(path[0].x, path[0].y);
-            for (let i = 1; i < path.length; i++) {
-                ctx.lineTo(path[i].x, path[i].y);
-            }
-            ctx.stroke();
-            ctx.setLineDash([]);
-        }
-
-        function updateBloons() {
-            const path = gameState.currentMap.path;
-            for (let i = gameState.bloons.length - 1; i >= 0; i--) {
-                const bloon = gameState.bloons[i];
-                const speed = bloon.effects.slow ? bloon.speed * bloon.effects.slow : bloon.speed;
-                
-                if (bloon.effects.frozen) {
-                    bloon.effects.frozen--;
-                    continue;
-                }
-
-                bloon.angle += 0.1;
-
-                if (bloon.pathIndex < path.length - 1) {
-                    const target = path[bloon.pathIndex + 1];
-                    const dx = target.x - bloon.x;
-                    const dy = target.y - bloon.y;
-                    const dist = Math.hypot(dx, dy);
-                    
-                    if (dist < speed) {
-                        bloon.pathIndex++;
-                        if (bloon.pathIndex >= path.length - 1) {
-                            const data = bloonTypes[bloon.type];
-                            gameState.lives -= (data.isMoab ? Math.ceil(bloon.hp / 200) : 1);
-                            gameState.bloons.splice(i, 1);
-                            createParticles(bloon.x, bloon.y, '#FF0000', 8);
-                            updateUI();
-                        }
-                    } else {
-                        bloon.x += (dx / dist) * speed;
-                        bloon.y += (dy / dist) * speed;
-                    }
-                }
-            }
-        }
-
-        function updateTowers() {
-            for (let tower of gameState.towers) {
-                if (tower.type === 'farm') {
-                    // Banana Farm generates money
-                    tower.fireTimer++;
-                    if (tower.fireTimer >= tower.fireRate) {
-                        const mode = gameModes[gameState.selectedMode];
-                        const income = 40 * mode.cashMult * (1 + tower.upgrades.path1 * 0.5);
-                        gameState.money += income;
-                        createParticles(tower.x, tower.y, '#FFEB3B', 5);
-                        tower.fireTimer = 0;
-                    }
-                    continue;
-                }
-                
-                tower.fireTimer++;
-                if (tower.fireTimer >= tower.fireRate) {
-                    const target = findTarget(tower);
-                    if (target) {
-                        shootProjectile(tower, target);
-                        tower.fireTimer = 0;
-                    }
-                }
-            }
-        }
-
-        function updateHero() {
-            if (!gameState.hero) return;
-            
-            const hero = gameState.hero;
-            hero.fireTimer++;
-            
-            if (hero.fireTimer >= hero.fireRate) {
-                const target = findTarget(hero);
-                if (target) {
-                    shootProjectile(hero, target);
-                    hero.fireTimer = 0;
-                }
-            }
-        }
-
-        function drawHero() {
-            if (!gameState.hero) return;
-            
-            const hero = gameState.hero;
-            const gradient = ctx.createRadialGradient(hero.x - 8, hero.y - 8, 5, hero.x, hero.y, 35);
-            gradient.addColorStop(0, shadeColor(hero.color, 40));
-            gradient.addColorStop(1, shadeColor(hero.color, -30));
-            ctx.fillStyle = gradient;
-            ctx.beginPath();
-            ctx.arc(hero.x, hero.y, 30, 0, Math.PI * 2);
-            ctx.fill();
-            
-            ctx.strokeStyle = '#FFD700';
-            ctx.lineWidth = 4;
-            ctx.stroke();
-            
-            ctx.font = 'bold 28px Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillStyle = '#FFF';
-            ctx.fillText(hero.emoji, hero.x, hero.y);
-            
-            ctx.fillStyle = '#FFD700';
-            ctx.font = 'bold 16px Arial';
-            ctx.fillText(hero.level, hero.x, hero.y + 40);
-        }
-
-        function findTarget(tower) {
-            let closest = null;
-            let minDist = tower.range;
-            
-            for (let bloon of gameState.bloons) {
-                const dist = Math.hypot(tower.x - bloon.x, tower.y - bloon.y);
-                if (dist < minDist) {
-                    // Check for camo detection
-                    const data = bloonTypes[bloon.type];
-                    if (data.camo && !tower.camo && tower.upgrades.path3 < 2) continue;
-                    
-                    closest = bloon;
-                    minDist = dist;
-                }
-            }
-            return closest;
-        }
-
-        function shootProjectile(tower, target) {
-            if (tower.type === 'ice') {
-                for (let bloon of gameState.bloons) {
-                    const dist = Math.hypot(tower.x - bloon.x, tower.y - bloon.y);
-                    const data = bloonTypes[bloon.type];
-                    if (dist < tower.range && !data.freezeImmune) {
-                        bloon.effects.frozen = tower.freeze;
-                        createParticles(bloon.x, bloon.y, '#4FC3F7', 5);
-                    }
-                }
-            } else if (tower.type === 'glue') {
-                target.effects.slow = tower.slow;
-                createParticles(target.x, target.y, '#9C27B0', 5);
-            } else if (tower.type === 'village') {
-                // Village doesn't shoot
-                return;
-            } else {
-                gameState.projectiles.push({
-                    x: tower.x,
-                    y: tower.y,
-                    targetX: target.x,
-                    targetY: target.y,
-                    damage: tower.damage + (tower.upgrades.path1 || 0),
-                    speed: tower.projectileSpeed || 10,
-                    splash: tower.splash,
-                    color: tower.color,
-                    trail: [],
-                    magic: tower.magic,
-                    sharp: !tower.magic && !tower.splash
-                });
-            }
-        }
-
-        function updateProjectiles() {
-            for (let i = gameState.projectiles.length - 1; i >= 0; i--) {
-                const proj = gameState.projectiles[i];
-                
-                proj.trail.push({x: proj.x, y: proj.y});
-                if (proj.trail.length > 5) proj.trail.shift();
-                
-                const dx = proj.targetX - proj.x;
-                const dy = proj.targetY - proj.y;
-                const dist = Math.hypot(dx, dy);
-                
-                if (dist < proj.speed) {
-                    hitBloons(proj);
-                    gameState.projectiles.splice(i, 1);
-                } else {
-                    proj.x += (dx / dist) * proj.speed;
-                    proj.y += (dy / dist) * proj.speed;
-                }
-            }
-        }
-
-        function hitBloons(proj) {
-            let hit = false;
-            for (let bloon of gameState.bloons) {
-                const dist = Math.hypot(proj.targetX - bloon.x, proj.targetY - bloon.y);
-                if (dist < (proj.splash || 15)) {
-                    const data = bloonTypes[bloon.type];
-                    
-                    // Check immunities
-                    if (proj.magic && data.magicImmune) continue;
-                    if (proj.sharp && data.sharpImmune) continue;
-                    if (proj.splash && data.explodeImmune) continue;
-                    
-                    damageBloon(bloon, proj.damage);
-                    hit = true;
-                    if (!proj.splash) break;
-                }
-            }
-            if (hit) {
-                createParticles(proj.targetX, proj.targetY, proj.color, proj.splash ? 15 : 8);
-            }
-        }
-
-        function damageBloon(bloon, damage) {
-            bloon.hp -= damage;
-            
-            // Grant hero XP
-            if (gameState.hero && bloon.hp <= 0) {
-                gameState.hero.xp += 1;
-                const xpNeeded = gameState.hero.xpPerLevel[gameState.hero.level] || 99999;
-                if (gameState.hero.xp >= xpNeeded) {
-                    gameState.hero.level++;
-                    gameState.hero.xp = 0;
-                    gameState.hero.damage += 1;
-                    gameState.hero.range += 10;
-                    createParticles(gameState.hero.x, gameState.hero.y, '#FFD700', 30);
-                }
-            }
-            
-            if (bloon.hp <= 0) {
-                const data = bloonTypes[bloon.type];
-                const mode = gameModes[gameState.selectedMode];
-                gameState.money += data.reward * mode.cashMult;
-                createParticles(bloon.x, bloon.y, data.color, 12);
-                
-                if (data.child) {
-                    spawnChildBloon(bloon, data.child);
-                }
-                gameState.bloons = gameState.bloons.filter(b => b !== bloon);
-                updateUI();
-            }
-        }
-
-        function spawnChildBloon(parent, childType) {
-            const childData = bloonTypes[childType];
-            let hp = childData.hp;
-            if (childData.isMoab) hp *= gameState.moabHPMultiplier;
-            
-            gameState.bloons.push({
-                type: childType,
-                hp: hp,
-                maxHp: hp,
-                speed: childData.speed,
-                x: parent.x,
-                y:
+app.listen(PORT, () => {
+  console.log(`Proxy server running on http://localhost:${PORT}`);
+  console.log(`Use: http://localhost:${PORT}/proxy?url=WEBSITE_URL`);
+});
