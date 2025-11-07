@@ -1,221 +1,649 @@
-const express = require('express');
-const axios = require('axios');
-const cors = require('cors');
-const { URL } = require('url');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Proxy - Unblock Websites</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
 
-// Enable CORS for all origins
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+    .container {
+      max-width: 1200px;
+      margin: 40px auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
 
-// Serve a simple HTML interface
-app.get('/', (req, res) => {
-  res.send(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Web Proxy Server</title>
-      <style>
-        body {
-          font-family: Arial, sans-serif;
-          max-width: 800px;
-          margin: 50px auto;
-          padding: 20px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          min-height: 100vh;
-        }
-        .container {
-          background: white;
-          padding: 30px;
-          border-radius: 10px;
-          box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-        }
-        h1 {
-          color: #333;
-          text-align: center;
-        }
-        .input-group {
-          margin: 20px 0;
-        }
-        input[type="text"] {
-          width: 100%;
-          padding: 12px;
-          border: 2px solid #ddd;
-          border-radius: 5px;
-          font-size: 16px;
-          box-sizing: border-box;
-        }
-        button {
-          width: 100%;
-          padding: 12px;
-          background: #667eea;
-          color: white;
-          border: none;
-          border-radius: 5px;
-          font-size: 16px;
-          cursor: pointer;
-          margin-top: 10px;
-        }
-        button:hover {
-          background: #5568d3;
-        }
-        .info {
-          background: #f0f0f0;
-          padding: 15px;
-          border-radius: 5px;
-          margin-top: 20px;
-        }
-        iframe {
-          width: 100%;
-          height: 600px;
-          border: 2px solid #ddd;
-          border-radius: 5px;
-          margin-top: 20px;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <h1>🌐 Web Proxy Server</h1>
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 40px;
+      color: white;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 36px;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+
+    .subtitle {
+      opacity: 0.95;
+      font-size: 16px;
+    }
+
+    .content {
+      padding: 40px;
+    }
+
+    .proxy-form {
+      background: #f8f9fa;
+      padding: 30px;
+      border-radius: 12px;
+      margin-bottom: 30px;
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 10px;
+      font-weight: 600;
+      color: #333;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 16px;
+      transition: all 0.3s;
+      font-family: 'Courier New', monospace;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .button-group {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      flex: 1;
+      min-width: 200px;
+      padding: 16px 24px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: white;
+      color: #667eea;
+      border: 2px solid #667eea;
+    }
+
+    .btn-secondary:hover {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-clear {
+      background: #f44336;
+      color: white;
+    }
+
+    .btn-clear:hover {
+      background: #d32f2f;
+      transform: translateY(-2px);
+    }
+
+    #status {
+      padding: 16px 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      display: none;
+      font-weight: 500;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    #status.success {
+      background: #d4edda;
+      color: #155724;
+      border-left: 4px solid #28a745;
+      display: block;
+    }
+
+    #status.error {
+      background: #f8d7da;
+      color: #721c24;
+      border-left: 4px solid #dc3545;
+      display: block;
+    }
+
+    #status.loading {
+      background: #fff3cd;
+      color: #856404;
+      border-left: 4px solid #ffc107;
+      display: block;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .info-card {
+      background: #f8f9fa;
+      padding: 24px;
+      border-radius: 12px;
+      border-left: 4px solid #667eea;
+    }
+
+    .info-card h3 {
+      color: #333;
+      margin-bottom: 12px;
+      font-size: 18px;
+    }
+
+    .info-card ul {
+      list-style: none;
+      color: #666;
+    }
+
+    .info-card li {
+      margin-bottom: 8px;
+      padding-left: 20px;
+      position: relative;
+    }
+
+    .info-card li:before {
+      content: "→";
+      position: absolute;
+      left: 0;
+      color: #667eea;
+      font-weight: bold;
+    }
+
+    .info-card code {
+      background: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      color: #667eea;
+      font-size: 13px;
+      word-break: break-all;
+    }
+
+    #result {
+      margin-top: 30px;
+    }
+
+    .browser-frame {
+      border: 3px solid #e0e0e0;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+
+    .browser-bar {
+      background: #f5f5f5;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    .browser-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .dot.red { background: #ff5f56; }
+    .dot.yellow { background: #ffbd2e; }
+    .dot.green { background: #27c93f; }
+
+    .browser-url {
+      flex: 1;
+      background: white;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #666;
+      font-family: 'Courier New', monospace;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    iframe {
+      width: 100%;
+      height: 700px;
+      border: none;
+      display: block;
+      background: white;
+    }
+
+    .loading-container {
+      text-align: center;
+      padding: 60px 20px;
+    }
+
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      color: #666;
+      font-size: 16px;
+    }
+
+    .quick-links {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+
+    .quick-link {
+      padding: 8px 16px;
+      background: white;
+      border: 2px solid #e0e0e0;
+      border-radius: 20px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .quick-link:hover {
+      border-color: #667eea;
+      background: #667eea;
+      color: white;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        margin: 20px auto;
+      }
+
+      .content {
+        padding: 20px;
+      }
+
+      h1 {
+        font-size: 28px;
+      }
+
+      .button-group {
+        flex-direction: column;
+      }
+
+      button {
+        min-width: 100%;
+      }
+
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+
+      iframe {
+        height: 500px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🌐 Web Proxy</h1>
+      <div class="subtitle">Access blocked websites securely and anonymously</div>
+    </div>
+
+    <div class="content">
+      <div class="proxy-form">
         <div class="input-group">
-          <input type="text" id="urlInput" placeholder="Enter URL (e.g., https://example.com)" />
-          <button onclick="loadUrl()">Load Website</button>
+          <label for="urlInput">🔗 Enter Website URL</label>
+          <input 
+            type="text" 
+            id="urlInput" 
+            placeholder="https://example.com or just example.com" 
+            value="https://example.com"
+          >
         </div>
-        <div class="info">
-          <strong>How to use:</strong>
-          <ul>
-            <li>Enter any website URL above</li>
-            <li>Click "Load Website" to access it through the proxy</li>
-            <li>The proxy will bypass most network restrictions</li>
-          </ul>
-          <strong>API Endpoint:</strong>
-          <code>GET /proxy?url=YOUR_URL</code>
+
+        <div class="quick-links">
+          <span style="color: #666; font-size: 14px; font-weight: 600;">Quick Links:</span>
+          <div class="quick-link" onclick="setUrl('https://example.com')">Example</div>
+          <div class="quick-link" onclick="setUrl('https://wikipedia.org')">Wikipedia</div>
+          <div class="quick-link" onclick="setUrl('https://news.ycombinator.com')">Hacker News</div>
+          <div class="quick-link" onclick="setUrl('https://reddit.com')">Reddit</div>
         </div>
-        <div id="content"></div>
+
+        <div class="button-group" style="margin-top: 20px;">
+          <button class="btn-primary" onclick="loadUrl()">
+            <span>🚀</span> Load Website
+          </button>
+          <button class="btn-secondary" onclick="openNewWindow()">
+            <span>🔗</span> Open in New Window
+          </button>
+          <button class="btn-clear" onclick="clearResult()">
+            <span>🗑️</span> Clear
+          </button>
+        </div>
       </div>
-      <script>
-        function loadUrl() {
-          const url = document.getElementById('urlInput').value;
-          if (!url) {
-            alert('Please enter a URL');
-            return;
-          }
-          const contentDiv = document.getElementById('content');
-          contentDiv.innerHTML = '<iframe src="/proxy?url=' + encodeURIComponent(url) + '"></iframe>';
+
+      <div id="status"></div>
+
+      <div class="info-grid">
+        <div class="info-card">
+          <h3>📖 How to Use</h3>
+          <ul>
+            <li>Enter any website URL (http:// or https://)</li>
+            <li>Click "Load Website" to view content</li>
+            <li>Use quick links for instant access</li>
+            <li>Some sites may block proxy access</li>
+          </ul>
+        </div>
+
+        <div class="info-card">
+          <h3>✨ Features</h3>
+          <ul>
+            <li>No installation required</li>
+            <li>Browser-based proxy</li>
+            <li>Bypass network restrictions</li>
+            <li>Works with most websites</li>
+          </ul>
+        </div>
+
+        <div class="info-card">
+          <h3>⚡ Tips</h3>
+          <ul>
+            <li>Press Enter to load quickly</li>
+            <li>Use "New Window" for better compatibility</li>
+            <li>Clear result to free up memory</li>
+            <li>Some dynamic sites may not work perfectly</li>
+          </ul>
+        </div>
+      </div>
+
+      <div id="result"></div>
+    </div>
+  </div>
+
+  <script>
+    let currentUrl = '';
+
+    function showStatus(message, type) {
+      const status = document.getElementById('status');
+      status.textContent = message;
+      status.className = type;
+      status.style.display = 'block';
+    }
+
+    function hideStatus() {
+      const status = document.getElementById('status');
+      status.style.display = 'none';
+    }
+
+    function showLoading() {
+      const result = document.getElementById('result');
+      result.innerHTML = `
+        <div class="loading-container">
+          <div class="spinner"></div>
+          <div class="loading-text">Loading website...</div>
+        </div>
+      `;
+    }
+
+    function setUrl(url) {
+      document.getElementById('urlInput').value = url;
+    }
+
+    function clearResult() {
+      document.getElementById('result').innerHTML = '';
+      hideStatus();
+    }
+
+    function normalizeUrl(url) {
+      url = url.trim();
+      if (!url) return null;
+      
+      if (!url.match(/^https?:\/\//i)) {
+        url = 'https://' + url;
+      }
+      
+      return url;
+    }
+
+    async function loadUrl() {
+      let targetUrl = document.getElementById('urlInput').value;
+      targetUrl = normalizeUrl(targetUrl);
+
+      if (!targetUrl) {
+        showStatus('⚠️ Please enter a valid URL', 'error');
+        return;
+      }
+
+      currentUrl = targetUrl;
+      showLoading();
+      showStatus('⏳ Loading website...', 'loading');
+
+      // Multiple proxy services to try
+      const proxies = [
+        {
+          name: 'cors-anywhere',
+          url: 'https://cors-anywhere.herokuapp.com/' + targetUrl,
+          requiresAuth: false
+        },
+        {
+          name: 'thingproxy',
+          url: 'https://thingproxy.freeboard.io/fetch/' + targetUrl,
+          requiresAuth: false
+        },
+        {
+          name: 'corsproxy',
+          url: 'https://corsproxy.io/?' + encodeURIComponent(targetUrl),
+          requiresAuth: false
+        },
+        {
+          name: 'direct',
+          url: targetUrl,
+          requiresAuth: false
         }
-      </script>
-    </body>
-    </html>
-  `);
-});
+      ];
 
-// Main proxy endpoint
-app.get('/proxy', async (req, res) => {
-  try {
-    const targetUrl = req.query.url;
-    
-    if (!targetUrl) {
-      return res.status(400).send('URL parameter is required');
+      let lastError = null;
+
+      for (let proxy of proxies) {
+        try {
+          showStatus(`⏳ Trying ${proxy.name}...`, 'loading');
+          console.log('Attempting with:', proxy.name);
+          
+          const response = await fetch(proxy.url, {
+            method: 'GET',
+            headers: {
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Status ${response.status}`);
+          }
+
+          const html = await response.text();
+          
+          showStatus(`✅ Website loaded successfully via ${proxy.name}!`, 'success');
+          displayInFrame(html, targetUrl);
+          return;
+
+        } catch (error) {
+          console.error(`${proxy.name} failed:`, error.message);
+          lastError = error;
+          continue;
+        }
+      }
+
+      // All proxies failed
+      showStatus('❌ Unable to load website through any proxy', 'error');
+      
+      document.getElementById('result').innerHTML = `
+        <div class="info-card" style="border-left-color: #f44336;">
+          <h3>❌ Failed to Load Website</h3>
+          <ul>
+            <li>Error: ${lastError ? lastError.message : 'All proxies failed'}</li>
+            <li>The website may be blocking all proxy access</li>
+            <li>Some websites use strong anti-proxy protection</li>
+            <li>Try visiting the website directly: <a href="${targetUrl}" target="_blank" style="color: #667eea; text-decoration: underline;">${targetUrl}</a></li>
+          </ul>
+          <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 8px;">
+            <strong>Alternative Options:</strong><br>
+            <button onclick="window.open('${targetUrl}', '_blank')" style="margin-top: 10px; padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer;">
+              Open Original Site Directly
+            </button>
+          </div>
+        </div>
+      `;
     }
 
-    // Validate URL
-    let parsedUrl;
-    try {
-      parsedUrl = new URL(targetUrl);
-    } catch (e) {
-      return res.status(400).send('Invalid URL provided');
+    function displayInFrame(html, url) {
+      const result = document.getElementById('result');
+      
+      // Parse the URL to get the hostname
+      let hostname = '';
+      try {
+        const urlObj = new URL(url);
+        hostname = urlObj.hostname;
+      } catch (e) {
+        hostname = url;
+      }
+
+      result.innerHTML = `
+        <div class="browser-frame">
+          <div class="browser-bar">
+            <div class="browser-dots">
+              <div class="dot red"></div>
+              <div class="dot yellow"></div>
+              <div class="dot green"></div>
+            </div>
+            <div class="browser-url">🔒 ${hostname}</div>
+          </div>
+          <iframe id="proxyFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"></iframe>
+        </div>
+      `;
+
+      const iframe = document.getElementById('proxyFrame');
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+      
+      iframeDoc.open();
+      iframeDoc.write(html);
+      iframeDoc.close();
     }
 
-    // Make request to target URL with headers that bypass restrictions
-    const response = await axios.get(targetUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1'
-      },
-      maxRedirects: 5,
-      validateStatus: function (status) {
-        return status < 500; // Accept any status code less than 500
-      },
-      responseType: 'arraybuffer'
+    function openNewWindow() {
+      let targetUrl = document.getElementById('urlInput').value;
+      targetUrl = normalizeUrl(targetUrl);
+
+      if (!targetUrl) {
+        showStatus('⚠️ Please enter a valid URL', 'error');
+        return;
+      }
+
+      // Try multiple proxies in new windows
+      const proxies = [
+        'https://corsproxy.io/?' + encodeURIComponent(targetUrl),
+        'https://thingproxy.freeboard.io/fetch/' + targetUrl,
+        'https://cors-anywhere.herokuapp.com/' + targetUrl
+      ];
+
+      // Try the first available proxy
+      window.open(proxies[0], '_blank', 'width=1200,height=800');
+      showStatus('✅ Opened in new window', 'success');
+    }
+
+    // Handle Enter key
+    document.getElementById('urlInput').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        loadUrl();
+      }
     });
 
-    // Forward response headers
-    const contentType = response.headers['content-type'];
-    if (contentType) {
-      res.setHeader('Content-Type', contentType);
-    }
-
-    // Modify HTML content to fix relative URLs
-    if (contentType && contentType.includes('text/html')) {
-      let html = response.data.toString('utf-8');
-      
-      // Convert relative URLs to absolute
-      const baseUrl = `${parsedUrl.protocol}//${parsedUrl.host}`;
-      html = html.replace(/href="\/([^"]*)"/g, `href="${baseUrl}/$1"`);
-      html = html.replace(/src="\/([^"]*)"/g, `src="${baseUrl}/$1"`);
-      
-      // Inject base tag
-      html = html.replace(/<head>/i, `<head><base href="${baseUrl}/">`);
-      
-      res.send(html);
-    } else {
-      res.send(response.data);
-    }
-
-  } catch (error) {
-    console.error('Proxy error:', error.message);
-    res.status(500).send(`
-      <html>
-        <body style="font-family: Arial; padding: 20px;">
-          <h2>Error loading website</h2>
-          <p>${error.message}</p>
-          <p>The website may be blocking proxy access or may be unavailable.</p>
-        </body>
-      </html>
-    `);
-  }
-});
-
-// API endpoint for programmatic access
-app.post('/api/proxy', async (req, res) => {
-  try {
-    const { url, method = 'GET', headers = {}, data } = req.body;
-    
-    if (!url) {
-      return res.status(400).json({ error: 'URL is required' });
-    }
-
-    const response = await axios({
-      method,
-      url,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        ...headers
-      },
-      data,
-      maxRedirects: 5,
-      validateStatus: () => true
+    // Auto-focus input on load
+    window.addEventListener('load', function() {
+      document.getElementById('urlInput').focus();
     });
-
-    res.json({
-      status: response.status,
-      headers: response.headers,
-      data: response.data
-    });
-
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.listen(PORT, () => {
-  console.log(`Proxy server running on http://localhost:${PORT}`);
-  console.log(`Use: http://localhost:${PORT}/proxy?url=WEBSITE_URL`);
-});
+  </script>
+</body>
+</html>
