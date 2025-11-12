@@ -70,20 +70,95 @@
       letter-spacing: 0.5px;
     }
 
-    input[type="text"] {
+    input[type="text"], select {
       width: 100%;
       padding: 16px;
       border: 2px solid #e0e0e0;
       border-radius: 10px;
       font-size: 16px;
       transition: all 0.3s;
+      background: white;
+    }
+
+    input[type="text"] {
       font-family: 'Courier New', monospace;
     }
 
-    input[type="text"]:focus {
+    input[type="text"]:focus, select:focus {
       outline: none;
       border-color: #667eea;
       box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .proxy-selector {
+      margin-bottom: 20px;
+    }
+
+    .proxy-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .proxy-item {
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: white;
+    }
+
+    .proxy-item:hover {
+      border-color: #667eea;
+      transform: translateY(-2px);
+    }
+
+    .proxy-item.selected {
+      border-color: #667eea;
+      background: #667eea;
+      color: white;
+    }
+
+    .proxy-item.testing {
+      border-color: #ffc107;
+      background: #fff3cd;
+    }
+
+    .proxy-item.working {
+      border-color: #28a745;
+    }
+
+    .proxy-item.blocked {
+      border-color: #dc3545;
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .proxy-status {
+      font-size: 12px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    .status-working {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status-blocked {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .status-testing {
+      background: #fff3cd;
+      color: #856404;
     }
 
     .button-group {
@@ -94,7 +169,7 @@
 
     button {
       flex: 1;
-      min-width: 200px;
+      min-width: 150px;
       padding: 16px 24px;
       border: none;
       border-radius: 10px;
@@ -108,12 +183,17 @@
       gap: 8px;
     }
 
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
     .btn-primary {
       background: #667eea;
       color: white;
     }
 
-    .btn-primary:hover {
+    .btn-primary:hover:not(:disabled) {
       background: #5568d3;
       transform: translateY(-2px);
       box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
@@ -125,9 +205,18 @@
       border: 2px solid #667eea;
     }
 
-    .btn-secondary:hover {
+    .btn-secondary:hover:not(:disabled) {
       background: #667eea;
       color: white;
+    }
+
+    .btn-test {
+      background: #ffc107;
+      color: #333;
+    }
+
+    .btn-test:hover:not(:disabled) {
+      background: #ffb300;
     }
 
     .btn-clear {
@@ -135,7 +224,7 @@
       color: white;
     }
 
-    .btn-clear:hover {
+    .btn-clear:hover:not(:disabled) {
       background: #d32f2f;
       transform: translateY(-2px);
     }
@@ -218,16 +307,6 @@
       left: 0;
       color: #667eea;
       font-weight: bold;
-    }
-
-    .info-card code {
-      background: white;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-family: 'Courier New', monospace;
-      color: #667eea;
-      font-size: 13px;
-      word-break: break-all;
     }
 
     #result {
@@ -362,14 +441,18 @@
       iframe {
         height: 500px;
       }
+
+      .proxy-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>🌐 Web Proxy</h1>
-      <div class="subtitle">Access blocked websites securely and anonymously</div>
+      <h1>🌐 Multi-Proxy Web Browser</h1>
+      <div class="subtitle">Access any website through 10+ proxy services</div>
     </div>
 
     <div class="content">
@@ -379,26 +462,34 @@
           <input 
             type="text" 
             id="urlInput" 
-            placeholder="https://example.com or just example.com" 
+            placeholder="https://example.com or example.com/page" 
             value="https://example.com"
           >
         </div>
 
         <div class="quick-links">
           <span style="color: #666; font-size: 14px; font-weight: 600;">Quick Links:</span>
-          <div class="quick-link" onclick="setUrl('https://tiktok.com')">TikTok</div>
+          <div class="quick-link" onclick="setUrl('https://TikTok.com')">TikTok</div>
           <div class="quick-link" onclick="setUrl('https://wikipedia.org')">Wikipedia</div>
           <div class="quick-link" onclick="setUrl('https://news.ycombinator.com')">Hacker News</div>
           <div class="quick-link" onclick="setUrl('https://reddit.com')">Reddit</div>
-          <div class="quick-link" onCLick="setUrl('https://instagram.com')">Instagram</div>
+          <div class="quick-link" onclick="setUrl('https://stackoverflow.com')">Stack Overflow</div>
+        </div>
+
+        <div class="proxy-selector">
+          <label>🔧 Select Proxy Service (or use Auto)</label>
+          <div class="proxy-grid" id="proxyGrid"></div>
         </div>
 
         <div class="button-group" style="margin-top: 20px;">
+          <button class="btn-test" onclick="testAllProxies()">
+            <span>🧪</span> Test All Proxies
+          </button>
           <button class="btn-primary" onclick="loadUrl()">
             <span>🚀</span> Load Website
           </button>
           <button class="btn-secondary" onclick="openNewWindow()">
-            <span>🔗</span> Open in New Window
+            <span>🔗</span> New Window
           </button>
           <button class="btn-clear" onclick="clearResult()">
             <span>🗑️</span> Clear
@@ -412,19 +503,19 @@
         <div class="info-card">
           <h3>📖 How to Use</h3>
           <ul>
-            <li>Enter any website URL (http:// or https://)</li>
-            <li>Click "Load Website" to view content</li>
-            <li>Use quick links for instant access</li>
-            <li>Some sites may block proxy access</li>
+            <li>Enter any URL with full path support</li>
+            <li>Test proxies to find working ones</li>
+            <li>Select a proxy or use "Auto" mode</li>
+            <li>Click "Load Website" to access content</li>
           </ul>
         </div>
 
         <div class="info-card">
           <h3>✨ Features</h3>
           <ul>
-            <li>No installation required</li>
-            <li>Browser-based proxy</li>
-            <li>Bypass network restrictions</li>
+            <li>10+ free proxy services</li>
+            <li>Auto-detection of working proxies</li>
+            <li>Full subdirectory support</li>
             <li>Works with most websites</li>
           </ul>
         </div>
@@ -432,10 +523,10 @@
         <div class="info-card">
           <h3>⚡ Tips</h3>
           <ul>
-            <li>Press Enter to load quickly</li>
-            <li>Use "New Window" for better compatibility</li>
-            <li>Clear result to free up memory</li>
-            <li>Some dynamic sites may not work perfectly</li>
+            <li>Test proxies before first use</li>
+            <li>Green = working, Red = blocked</li>
+            <li>Try different proxies if one fails</li>
+            <li>Some sites may still block proxies</li>
           </ul>
         </div>
       </div>
@@ -445,7 +536,182 @@
   </div>
 
   <script>
+    const PROXY_SERVICES = [
+      {
+        id: 'auto',
+        name: 'Auto (Try All)',
+        format: null,
+        testUrl: null,
+        status: 'auto'
+      },
+      {
+        id: 'corsproxy',
+        name: 'CorsProxy.io',
+        format: (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+        testUrl: 'https://corsproxy.io/?https://example.com',
+        status: 'unknown'
+      },
+      {
+        id: 'codetabs',
+        name: 'CodeTabs',
+        format: (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+        testUrl: 'https://api.codetabs.com/v1/proxy?quest=https://example.com',
+        status: 'unknown'
+      },
+      {
+        id: 'cors-sh',
+        name: 'CORS.sh',
+        format: (url) => `https://cors.sh/${url}`,
+        testUrl: 'https://cors.sh/https://example.com',
+        status: 'unknown'
+      },
+      {
+        id: 'proxy-workers',
+        name: 'Cloudflare Workers',
+        format: (url) => `https://proxy.cors.sh/${url}`,
+        testUrl: 'https://proxy.cors.sh/https://example.com',
+        status: 'unknown'
+      },
+      {
+        id: 'api-moiva',
+        name: 'API Moiva',
+        format: (url) => `https://api.moiva.workers.dev/?${encodeURIComponent(url)}`,
+        testUrl: 'https://api.moiva.workers.dev/?https://example.com',
+        status: 'unknown'
+      },
+      {
+        id: 'cors-bridged',
+        name: 'CORS Bridged',
+        format: (url) => `https://cors-anywhere.herokuapp.com/${url}`,
+        testUrl: 'https://cors-anywhere.herokuapp.com/https://example.com',
+        status: 'unknown'
+      },
+      {
+        id: 'proxy-scrape',
+        name: 'Scrape Proxy',
+        format: (url) => `https://api.scraperapi.com?url=${encodeURIComponent(url)}&api_key=demo`,
+        testUrl: 'https://api.scraperapi.com?url=https://example.com&api_key=demo',
+        status: 'unknown'
+      },
+      {
+        id: 'proxy-fetch',
+        name: 'Fetch Proxy',
+        format: (url) => `https://cors-fetch.proxy.workers.dev/?url=${encodeURIComponent(url)}`,
+        testUrl: 'https://cors-fetch.proxy.workers.dev/?url=https://example.com',
+        status: 'unknown'
+      },
+      {
+        id: 'cors-fix',
+        name: 'CORS Fix',
+        format: (url) => `https://cors-fix.web.workers.dev/?${encodeURIComponent(url)}`,
+        testUrl: 'https://cors-fix.web.workers.dev/?https://example.com',
+        status: 'unknown'
+      },
+      {
+        id: 'proxy-deta',
+        name: 'Deta Proxy',
+        format: (url) => `https://deta-cors-anywhere.deta.dev/${url}`,
+        testUrl: 'https://deta-cors-anywhere.deta.dev/https://example.com',
+        status: 'unknown'
+      },
+      {
+        id: 'proxy-vercel',
+        name: 'Vercel Proxy',
+        format: (url) => `https://cors-anywhere.azm.workers.dev/${url}`,
+        testUrl: 'https://cors-anywhere.azm.workers.dev/https://example.com',
+        status: 'unknown'
+      }
+    ];
+
+    let selectedProxy = 'auto';
     let currentUrl = '';
+
+    function initProxyGrid() {
+      const grid = document.getElementById('proxyGrid');
+      grid.innerHTML = '';
+
+      PROXY_SERVICES.forEach(proxy => {
+        const item = document.createElement('div');
+        item.className = `proxy-item ${proxy.id === 'auto' ? 'selected' : ''}`;
+        item.onclick = () => selectProxy(proxy.id);
+        
+        let statusBadge = '';
+        if (proxy.status === 'working') {
+          statusBadge = '<span class="proxy-status status-working">✓</span>';
+        } else if (proxy.status === 'blocked') {
+          statusBadge = '<span class="proxy-status status-blocked">✗</span>';
+        } else if (proxy.status === 'testing') {
+          statusBadge = '<span class="proxy-status status-testing">...</span>';
+        }
+
+        item.innerHTML = `
+          <span>${proxy.name}</span>
+          ${statusBadge}
+        `;
+        
+        grid.appendChild(item);
+      });
+    }
+
+    function selectProxy(id) {
+      selectedProxy = id;
+      const items = document.querySelectorAll('.proxy-item');
+      items.forEach((item, index) => {
+        if (PROXY_SERVICES[index].id === id) {
+          item.classList.add('selected');
+        } else {
+          item.classList.remove('selected');
+        }
+      });
+    }
+
+    async function testProxy(proxy) {
+      if (!proxy.testUrl) return;
+
+      const proxyIndex = PROXY_SERVICES.findIndex(p => p.id === proxy.id);
+      PROXY_SERVICES[proxyIndex].status = 'testing';
+      initProxyGrid();
+      selectProxy(selectedProxy);
+
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        const response = await fetch(proxy.testUrl, {
+          method: 'GET',
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          PROXY_SERVICES[proxyIndex].status = 'working';
+          console.log(`✓ ${proxy.name} is working`);
+        } else {
+          PROXY_SERVICES[proxyIndex].status = 'blocked';
+          console.log(`✗ ${proxy.name} returned status ${response.status}`);
+        }
+      } catch (error) {
+        PROXY_SERVICES[proxyIndex].status = 'blocked';
+        console.log(`✗ ${proxy.name} failed:`, error.message);
+      }
+
+      initProxyGrid();
+      selectProxy(selectedProxy);
+    }
+
+    async function testAllProxies() {
+      showStatus('🧪 Testing all proxy services...', 'loading');
+      
+      const testableProxies = PROXY_SERVICES.filter(p => p.testUrl);
+      
+      for (let proxy of testableProxies) {
+        await testProxy(proxy);
+      }
+
+      const workingCount = PROXY_SERVICES.filter(p => p.status === 'working').length;
+      showStatus(`✅ Testing complete! ${workingCount} proxies are working`, 'success');
+    }
 
     function showStatus(message, type) {
       const status = document.getElementById('status');
@@ -500,53 +766,108 @@
 
       currentUrl = targetUrl;
       showLoading();
-      showStatus('⏳ Loading website...', 'loading');
 
-      // Multiple proxy services to try
-      const proxies = [
-        {
-          name: 'cors-anywhere',
-          url: 'https://cors-anywhere.herokuapp.com/' + targetUrl,
-          requiresAuth: false
-        },
-        {
-          name: 'thingproxy',
-          url: 'https://thingproxy.freeboard.io/fetch/' + targetUrl,
-          requiresAuth: false
-        },
-        {
-          name: 'corsproxy',
-          url: 'https://corsproxy.io/?' + encodeURIComponent(targetUrl),
-          requiresAuth: false
-        },
-        {
-          name: 'direct',
-          url: targetUrl,
-          requiresAuth: false
+      if (selectedProxy === 'auto') {
+        await loadWithAutoProxy(targetUrl);
+      } else {
+        await loadWithSpecificProxy(targetUrl, selectedProxy);
+      }
+    }
+
+    async function loadWithSpecificProxy(targetUrl, proxyId) {
+      const proxy = PROXY_SERVICES.find(p => p.id === proxyId);
+      
+      if (!proxy || !proxy.format) {
+        showStatus('⚠️ Invalid proxy selected', 'error');
+        return;
+      }
+
+      showStatus(`⏳ Loading via ${proxy.name}...`, 'loading');
+
+      try {
+        const proxyUrl = proxy.format(targetUrl);
+        const response = await fetch(proxyUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Status ${response.status}`);
         }
-      ];
+
+        let html = await response.text();
+        
+        // Handle JSON wrapped responses
+        if (html.startsWith('{')) {
+          try {
+            const json = JSON.parse(html);
+            html = json.contents || json.data || html;
+          } catch (e) {}
+        }
+
+        showStatus(`✅ Loaded successfully via ${proxy.name}!`, 'success');
+        displayInFrame(html, targetUrl);
+
+      } catch (error) {
+        showStatus(`❌ Failed with ${proxy.name}: ${error.message}`, 'error');
+        document.getElementById('result').innerHTML = `
+          <div class="info-card" style="border-left-color: #f44336;">
+            <h3>❌ Failed to Load</h3>
+            <ul>
+              <li>Proxy: ${proxy.name}</li>
+              <li>Error: ${error.message}</li>
+              <li>Try testing proxies or selecting a different one</li>
+            </ul>
+          </div>
+        `;
+      }
+    }
+
+    async function loadWithAutoProxy(targetUrl) {
+      showStatus('⏳ Auto-detecting best proxy...', 'loading');
+
+      // Try working proxies first
+      const workingProxies = PROXY_SERVICES.filter(p => p.status === 'working' && p.format);
+      const unknownProxies = PROXY_SERVICES.filter(p => p.status === 'unknown' && p.format);
+      const allProxies = [...workingProxies, ...unknownProxies];
 
       let lastError = null;
 
-      for (let proxy of proxies) {
+      for (let proxy of allProxies) {
         try {
           showStatus(`⏳ Trying ${proxy.name}...`, 'loading');
-          console.log('Attempting with:', proxy.name);
           
-          const response = await fetch(proxy.url, {
+          const proxyUrl = proxy.format(targetUrl);
+          const response = await fetch(proxyUrl, {
             method: 'GET',
             headers: {
               'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
             }
           });
-          
+
           if (!response.ok) {
             throw new Error(`Status ${response.status}`);
           }
 
-          const html = await response.text();
+          let html = await response.text();
           
-          showStatus(`✅ Website loaded successfully via ${proxy.name}!`, 'success');
+          // Handle JSON wrapped responses
+          if (html.startsWith('{')) {
+            try {
+              const json = JSON.parse(html);
+              html = json.contents || json.data || html;
+            } catch (e) {}
+          }
+
+          // Mark as working
+          const proxyIndex = PROXY_SERVICES.findIndex(p => p.id === proxy.id);
+          PROXY_SERVICES[proxyIndex].status = 'working';
+          initProxyGrid();
+          selectProxy(selectedProxy);
+
+          showStatus(`✅ Loaded successfully via ${proxy.name}!`, 'success');
           displayInFrame(html, targetUrl);
           return;
 
@@ -562,15 +883,15 @@
       
       document.getElementById('result').innerHTML = `
         <div class="info-card" style="border-left-color: #f44336;">
-          <h3>❌ Failed to Load Website</h3>
+          <h3>❌ All Proxies Failed</h3>
           <ul>
-            <li>Error: ${lastError ? lastError.message : 'All proxies failed'}</li>
-            <li>The website may be blocking all proxy access</li>
-            <li>Some websites use strong anti-proxy protection</li>
-            <li>Try visiting the website directly: <a href="${targetUrl}" target="_blank" style="color: #667eea; text-decoration: underline;">${targetUrl}</a></li>
+            <li>Error: ${lastError ? lastError.message : 'All proxies blocked or unavailable'}</li>
+            <li>The website may have strong anti-proxy protection</li>
+            <li>Try testing proxies first with the "Test All" button</li>
+            <li>Some websites cannot be proxied due to security</li>
           </ul>
           <div style="margin-top: 20px; padding: 15px; background: white; border-radius: 8px;">
-            <strong>Alternative Options:</strong><br>
+            <strong>Alternative:</strong><br>
             <button onclick="window.open('${targetUrl}', '_blank')" style="margin-top: 10px; padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 6px; cursor: pointer;">
               Open Original Site Directly
             </button>
@@ -582,7 +903,6 @@
     function displayInFrame(html, url) {
       const result = document.getElementById('result');
       
-      // Parse the URL to get the hostname
       let hostname = '';
       try {
         const urlObj = new URL(url);
@@ -622,16 +942,18 @@
         return;
       }
 
-      // Try multiple proxies in new windows
-      const proxies = [
-        'https://corsproxy.io/?' + encodeURIComponent(targetUrl),
-        'https://thingproxy.freeboard.io/fetch/' + targetUrl,
-        'https://cors-anywhere.herokuapp.com/' + targetUrl
-      ];
-
-      // Try the first available proxy
-      window.open(proxies[0], '_blank', 'width=1200,height=800');
-      showStatus('✅ Opened in new window', 'success');
+      const workingProxies = PROXY_SERVICES.filter(p => p.status === 'working' && p.format);
+      
+      if (workingProxies.length > 0) {
+        const proxyUrl = workingProxies[0].format(targetUrl);
+        window.open(proxyUrl, '_blank', 'width=1200,height=800');
+        showStatus(`✅ Opened via ${workingProxies[0].name}`, 'success');
+      } else {
+        const proxy = PROXY_SERVICES.find(p => p.id === 'corsproxy');
+        const proxyUrl = proxy.format(targetUrl);
+        window.open(proxyUrl, '_blank', 'width=1200,height=800');
+        showStatus('✅ Opened in new window', 'success');
+      }
     }
 
     // Handle Enter key
@@ -641,8 +963,9 @@
       }
     });
 
-    // Auto-focus input on load
+    // Initialize on load
     window.addEventListener('load', function() {
+      initProxyGrid();
       document.getElementById('urlInput').focus();
     });
   </script>
