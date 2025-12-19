@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bentley's Creations | Pyrix, VYL, QIEL</title>
+    <link rel="stylesheet" href="style.css">
+    <meta name="description"
+        content="Portfolio of innovative software projects including Pyrix text editor, VYL language, and QIEL AI architecture.">
+</head>
+
+<body>
+    <div class="bg-glow">
+        <div class="glow-1"></div>
+        <div class="glow-2"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="reveal">
+                <p class="subtitle">&lt; creations_portfolio /&gt;</p>
+                <h1 class="hero-title">Architecting the<br>Next Paradigm.</h1>
+                <p class="project-desc" style="max-width: 500px; font-size: 1.1rem;">
+                    A collection of systems designed to bridge the gap between human intuition and machine efficiency.
+                </p>
+            </div>
+        </header>
+
+        <main id="projects">
+            <div class="projects-grid">
+                <!-- Pyrix -->
+                <article class="card reveal delay-1">
+                    <img src="assets/pyrix.png" alt="Pyrix Interface" class="project-img">
+                    <div class="project-info">
+                        <h3>Pyrix <span class="tag tag-pyrix">Editor</span></h3>
+                        <p class="project-desc">
+                            A high-performance text editor optimized for Python development. Featuring intelligent
+                            autocomplete, segmented statuslines, and a hyper-minimalist aesthetic inspired by modern TUI
+                            workflows.
+                        </p>
+                    </div>
+                </article>
+
+                <!-- VYL-lang -->
+                <article class="card reveal delay-2">
+                    <img src="assets/vyl.png" alt="VYL Language Logo" class="project-img">
+                    <div class="project-info">
+                        <h3>VYL-lang <span class="tag tag-vyl">Language</span></h3>
+                        <p class="project-desc">
+                            A compiled, Python-like language with C-level control. Designed to replace C with a cleaner
+                            syntax while maintaining zero-cost abstractions and native x86_64 efficiency.
+                        </p>
+                    </div>
+                </article>
+
+                <!-- QIEL -->
+                <article class="card reveal delay-3">
+                    <img src="assets/qiel.png" alt="QIEL AI Visualization" class="project-img">
+                    <div class="project-info">
+                        <h3>QIEL <span class="tag tag-qiel">AI Arch</span></h3>
+                        <p class="project-desc">
+                            <b>Quantum-Inspired Entanglement Lattice.</b> A non-traditional AI architecture exploring
+                            deep interconnectivity patterns modeled after quantum entanglement. (Status: Experimental /
+                            WIP)
+                        </p>
+                    </div>
+                </article>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>&copy; 2025 Bentley. Built with VYL, Python, and Pure Intent.</p>
+        </footer>
+    </div>
+
+    <script>
+        // Simple Intersection Observer for reveal animations
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.reveal').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(20px)';
+            el.style.transition = 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
+            observer.observe(el);
+        });
+    </script>
+</body>
+
+</html>
