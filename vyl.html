@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bentley's Portfolio | VYL</title>
+    <link rel="stylesheet" href="style.css">
+    <meta name="description" content="YVL page">
+</head>
+
+<body>
+    <div class="bg-glow">
+        <div class="glow-1"></div>
+        <div class="glow-2"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <div class="reveal">
+                <p class="subtitle">&lt; /creations_portfolio/YVL/ &gt;</p>
+                <h1 class="hero-title">VYL.</h1>
+                <p class="project-desc" style="max-width: 500px; font-size: 1.1rem;">
+                    A hot-swapping systems language
+                </p>
+            </div>
+        </header>
+
+        <p class="mono-stat">[WHAT IS VYL?]</p>
+        <p class="mono-stat">
+          VYL is a hot-swappable systems language. It transpiles to C and then compiles to machine code.
+          It doesn't operate through any interpreters or virtual machines. Instead, it has a runtime that
+          watches the file that's running, and when it's written to, injects the changes into a shared
+          object file with the <code>.vylo</code> extension.
+        </p>
+        
+        <p class="mono-stat">[WHY SHOULD I USE VYL?]</p>
+        <p class="mono-stat">
+  I'm not going to hold you on anything; this is a language that I feel is missing from the
+  general programming landscape. I've always liked languages like C, C++, and Rust, but I feel
+  that they have always been either a syntax hell, or an eyesore and confusing to read.
+  VYL is designed to have the readability of Python, the speed of C, and the safety of Rust.
+</p>
+  
+  
+
+
+<p class="mono-stat">[WHY NOT JUST USE X LANGUAGE?]</p>
+<p class="mono-stat">
+  Go ahead, use what you want. I'm not going to stop you. This language is just something I
+  made to be a C replacement. You can use any language you want, except Zig. Zig looks
+  terrible. I feel VYL is much better to look at and easier to read and write than C/C++.
+</p>
+  
+  
+
+
+<p class="mono-stat">[GOALS]</p>
+<p class="mono-stat">
+  The main goal of VYL is to be fully finished and ready to use.
+  The secondary goal is to build a community around VYL.
+  The third, and final goal that I am making as the creator, is to finish any tools around it,
+  like the VYL linker, VYL package manager, and improve the smart compiler.
+    
+  
+
+  Any other goals are up to the community.
+</p>
+  
+  
+
+
+<p class="mono-stat">[WHAT VYL IS AND ISN'T]</p>
+<p class="mono-stat">
+  VYL is:
+    
+  
+
+  - A simple language with simple syntax  
+
+  - Open source  
+
+  - Community-driven  
+
+  - A language that is compiled to machine code
+    
+  
+
+  WHAT VYL ISN'T:
+    
+  
+
+  - A language that has a bunch of different versions, like C, with C++ and C# (if we even count C#)  
+
+  - A language that is complete — expect major changes  
+
+  - A language that is good for one specific use case; it's a general-purpose language
+</p>
+  
+  
+
+
+<p class="mono-stat">[WHERE CAN I GET VYL?]</p>
+<p class="mono-stat">
+  You can get VYL from GitHub; it's open source, so you can use it for free.
+  <a href="https://github.com/New-Tech-Exclusive/VYL-Language">VYL on GitHub</a>
+</p>
+        </footer>
+    </div>
+    <script>
+        // Simple Intersection Observer for reveal animations
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.reveal').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(20px)';
+            el.style.transition = 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
+            observer.observe(el);
+        });
+    </script>
+</body>
